@@ -1,445 +1,54 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Fitness Daily — v20</title>
-<meta name="theme-color" content="#0b0b0b">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="favicon.png">
-<style>
-  :root{
-    --bg:#0b0b0b; --card:#12151b; --muted:#9aa3b2; --line:#222; --acc:#e10600; --acc2:#d33; --ok:#4caf50;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:#eaeaea;font-family:-apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-  header{position:sticky;top:0;z-index:5;background:linear-gradient(#111,#0b0b0b);border-bottom:1px solid var(--line);padding:12px 14px;display:flex;gap:10px;align-items:center}
-  h1{margin:0;font-size:18px;letter-spacing:1px}
-  .sp{flex:1}
-  .btn{background:#1a1f29;border:1px solid #2a2f3a;color:#eaeaea;padding:8px 10px;border-radius:8px}
-  .btn.acc{background:var(--acc);border-color:#b00000;color:#fff}
-  main{max-width:980px;margin:0 auto;padding:14px}
-  .row{display:flex;gap:14px;flex-wrap:wrap}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;flex:1 1 320px;min-width:300px}
-  .card h2{margin:0 0 10px 0;font-size:16px;letter-spacing:.5px}
-  label{display:block;color:var(--muted);font-size:12px;margin-bottom:4px}
-  input,select,textarea{width:100%;background:#0f1115;border:1px solid #2a2f3a;color:#eaeaea;border-radius:8px;padding:8px}
-  input[type="number"]{width:100px}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .kpi{display:flex;gap:10px;flex-wrap:wrap}
-  .chip{background:#0f1115;border:1px solid #2a2f3a;border-radius:999px;padding:6px 10px;color:#eaeaea;font-size:12px}
-  .muted{color:var(--muted)}
-  .rowline{border-top:1px dashed #2a2f3a;margin:10px 0}
-  .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .q{font-size:14px;line-height:1.45;margin:0}
-  .a{color:var(--muted);font-size:12px;margin-top:6px}
-  .ex{display:grid;grid-template-columns:1fr 80px 80px 1fr 24px;gap:8px;align-items:center}
-  .ex input[type="checkbox"]{width:18px;height:18px}
-  .tbl{width:100%;border-collapse:collapse}
-  .tbl th,.tbl td{border-bottom:1px solid #1f2330;padding:8px;text-align:left}
-  .add{margin-top:10px}
-  progress{width:100%}
-  .tag{padding:2px 6px;border:1px solid #333;border-radius:6px;background:#0f1115;color:#ddd;font-size:11px}
-  .warning{color:#ffb74d}
-  .ok{color:#8bc34a}
-  footer{color:#666;text-align:center;padding:30px 10px}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fitness Daily v18.1</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#000000"/>
+  <style>
+    body { font-family: Arial, sans-serif; background: #111; color: #fff; margin: 0; padding: 0; }
+    header { background: #000; padding: 12px; text-align: center; font-size: 20px; font-weight: bold; }
+    .content { padding: 16px; }
+    .quote { margin: 20px 0; font-style: italic; }
+    .author { text-align: right; margin-bottom: 20px; }
+  </style>
 </head>
 <body>
-<header>
-  <h1>FITNESS DAILY — <span class="tag">v20</span></h1>
-  <div class="sp"></div>
-  <button class="btn" id="prevDay">◀</button>
-  <div class="chip" id="dateLabel"></div>
-  <button class="btn" id="nextDay">▶</button>
-</header>
-
-<main>
-  <div class="row">
-    <section class="card" style="flex:1 1 100%">
-      <div class="flex">
-        <div>
-          <label>Program start date</label>
-          <input id="startDate" type="date">
-        </div>
-        <div>
-          <label>Race day (Half Marathon)</label>
-          <input id="raceDate" type="date">
-        </div>
-        <div>
-          <label>Units</label>
-          <select id="units">
-            <option value="metric">Metric (km, kg)</option>
-            <option value="imperial">Imperial (mi, lb)</option>
-          </select>
-        </div>
-        <div>
-          <label>&nbsp;</label>
-          <button class="btn acc" id="savePrefs">Save</button>
-        </div>
-        <div class="sp"></div>
-        <div class="chip">Tip: Add this app to your Home Screen.</div>
-      </div>
-    </section>
+  <header>Fitness Daily</header>
+  <div class="content">
+    <h2>Daily Motivation</h2>
+    <div id="quoteBox"></div>
   </div>
 
-  <div class="row">
-    <section class="card">
-      <h2>Daily Motivation</h2>
-      <p class="q" id="quoteTxt"></p>
-      <div class="a" id="quoteAuth"></div>
-    </section>
+  <script>
+    const QUOTES = [
+      { q: "Discipline equals freedom.", a: "Jocko Willink" },
+      { q: "Stay hard.", a: "David Goggins" },
+      { q: "You miss 100% of the shots you don’t take.", a: "Wayne Gretzky" },
+      { q: "Success is not final, failure is not fatal: it is the courage to continue that counts.", a: "Winston Churchill" },
+      { q: "Let your yes be yes and your no be no.", a: "Jesus" },
+      { q: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", a: "Aristotle" },
+      { q: "The impediment to action advances action. What stands in the way becomes the way.", a: "Marcus Aurelius" },
+      { q: "Dreams don’t work unless you do.", a: "John C. Maxwell" },
+      { q: "Do not pray for an easy life, pray for the strength to endure a difficult one.", a: "Bruce Lee" },
+      { q: "Hard work beats talent when talent doesn’t work hard.", a: "Tim Notke" },
+      { q: "Fall seven times and stand up eight.", a: "Japanese Proverb" },
+      { q: "Don’t let what you cannot do interfere with what you can do.", a: "John Wooden" },
+      { q: "Courage is grace under pressure.", a: "Ernest Hemingway" },
+      { q: "It always seems impossible until it’s done.", a: "Nelson Mandela" },
+      { q: "Suffer the pain of discipline or suffer the pain of regret.", a: "Unknown" }
+    ];
 
-    <section class="card">
-      <h2>Today’s Run</h2>
-      <div id="runPlan"></div>
-      <div class="rowline"></div>
-      <div class="grid">
-        <div>
-          <label>Actual distance (<span id="distUnit">km</span>)</label>
-          <input id="runDist" type="number" min="0" step="0.1">
-        </div>
-        <div>
-          <label>Time (minutes)</label>
-          <input id="runMins" type="number" min="0" step="1">
-        </div>
-      </div>
-      <div class="kpi" style="margin-top:8px">
-        <div class="chip">Pace: <span id="pace">—</span> / <span id="paceUnit">km</span></div>
-        <div class="chip">Load: <span id="load">—</span></div>
-      </div>
-    </section>
-
-    <section class="card" style="flex:1 1 100%">
-      <h2>Today’s Strength</h2>
-      <div id="workouts"></div>
-    </section>
-  </div>
-
-  <div class="row">
-    <section class="card" style="flex:1 1 100%">
-      <h2>Nutrition</h2>
-      <div class="flex">
-        <div><label>Daily calorie target</label><input id="calTarget" type="number" min="1000" max="5000" step="50"></div>
-        <div><label>Protein target (g)</label><input id="pTarget" type="number" min="50" max="400" step="5"></div>
-        <div><label>Carbs target (g)</label><input id="cTarget" type="number" min="50" max="700" step="5"></div>
-        <div><label>Fat target (g)</label><input id="fTarget" type="number" min="20" max="200" step="1"></div>
-        <div><label>&nbsp;</label><button id="saveNutrition" class="btn">Save nutrition targets</button></div>
-      </div>
-
-      <table class="tbl" id="foodTbl">
-        <thead>
-          <tr><th>Item</th><th>Grams</th><th>kcal</th><th>P</th><th>C</th><th>F</th><th></th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-      <button class="btn add" id="addFood">+ Add food</button>
-
-      <div class="rowline"></div>
-      <div class="kpi">
-        <div class="chip">Total: <b id="totKcal">0</b> kcal</div>
-        <div class="chip">P: <b id="totP">0</b> g</div>
-        <div class="chip">C: <b id="totC">0</b> g</div>
-        <div class="chip">F: <b id="totF">0</b> g</div>
-      </div>
-      <div class="rowline"></div>
-      <div class="grid">
-        <div><label>Calories</label><progress id="barK" value="0" max="2500"></progress></div>
-        <div><label>Protein</label><progress id="barP" value="0" max="200"></progress></div>
-        <div><label>Carbs</label><progress id="barC" value="0" max="250"></progress></div>
-        <div><label>Fat</label><progress id="barF" value="0" max="80"></progress></div>
-      </div>
-    </section>
-  </div>
-
-  <footer>
-    Fitness Daily v20 • Offline-capable PWA • Data saved on your device
-  </footer>
-</main>
-
-<script>
-// ----------------- Storage helpers -----------------
-const KEY='fdaily';
-function loadDB(){ try{return JSON.parse(localStorage.getItem(KEY))||{};}catch(e){return {}} }
-function saveDB(db){ localStorage.setItem(KEY, JSON.stringify(db)); }
-function getPref(k,def){ const db=loadDB(); return (db['_pref_'+k] ?? def); }
-function setPref(k,v){ const db=loadDB(); db['_pref_'+k]=v; saveDB(db); }
-function ymd(d){ return d.toISOString().slice(0,10); }
-
-// ----------------- Dates & Prefs -----------------
-const tomorrow = new Date(Date.now() + 24*3600*1000);
-const defaultStart = getPref('start', ymd(tomorrow));
-const defaultRace = getPref('race', '2026-06-21');
-document.getElementById('startDate').value = defaultStart;
-document.getElementById('raceDate').value = defaultRace;
-document.getElementById('units').value = getPref('units','metric');
-
-document.getElementById('savePrefs').onclick = ()=>{
-  setPref('start', document.getElementById('startDate').value);
-  setPref('race', document.getElementById('raceDate').value);
-  setPref('units', document.getElementById('units').value);
-  renderAll();
-};
-
-// ----------------- Quotes (expanded) -----------------
-const QUOTES=[
- {t:"Discipline equals freedom.",a:"Jocko Willink"},
- {t:"Stay hard.",a:"David Goggins"},
- {t:"The only easy day was yesterday.",a:"Navy SEALs"},
- {t:"Tiny changes, remarkable results.",a:"Atomic Habits"},
- {t:"You do not rise to the level of your goals. You fall to the level of your systems.",a:"Atomic Habits"},
- {t:"I can accept failure; I can’t accept not trying.",a:"Michael Jordan"},
- {t:"I've failed over and over again and that is why I succeed.",a:"Michael Jordan"},
- {t:"Rest at the end, not in the middle.",a:"Kobe Bryant"},
- {t:"Greatness is not for everybody.",a:"Kobe Bryant"},
- {t:"You don’t have to be perfect, just be better than yesterday.",a:"Tom Brady"},
- {t:"Every champion is built like a brick wall. Every day, another brick.",a:"Tom Brady"},
- {t:"You miss 100% of the shots you don’t take.",a:"Wayne Gretzky"},
- {t:"Skate to where the puck is going, not where it has been.",a:"Wayne Gretzky"},
- {t:"Success is not final; failure is not fatal: it is the courage to continue that counts.",a:"Winston Churchill"},
- {t:"If you’re going through hell, keep going.",a:"Winston Churchill"},
- {t:"Let your yes be yes and your no be no.",a:"Jesus (Matthew 5:37)"},
- {t:"Whoever can be trusted with very little can also be trusted with much.",a:"Jesus (Luke 16:10)"},
- {t:"Waste no more time arguing what a good man should be. Be one.",a:"Marcus Aurelius"},
- {t:"You have power over your mind—not outside events. Realize this, and you will find strength.",a:"Marcus Aurelius"},
- {t:"We suffer more often in imagination than in reality.",a:"Seneca"},
- {t:"Luck is what happens when preparation meets opportunity.",a:"Seneca"},
- {t:"First say to yourself what you would be; then do what you have to do.",a:"Epictetus"},
- {t:"No man is free who is not master of himself.",a:"Epictetus"},
- {t:"Make your bed. Little things can change your life…and maybe the world.",a:"Adm. William H. McRaven"},
- {t:"Start where you are. Use what you have. Do what you can.",a:"Arthur Ashe"},
- {t:"Gold medals are made of sweat, determination, and a hard-to-find alloy called guts.",a:"Dan Gable"},
- {t:"It always seems impossible until it’s done.",a:"Nelson Mandela"},
- {t:"Perfection is not attainable, but if we chase perfection we can catch excellence.",a:"Vince Lombardi"},
- {t:"The man on top of the mountain didn’t fall there.",a:"Vince Lombardi"},
- {t:"Grit is passion and perseverance for very long-term goals.",a:"Angela Duckworth"},
- {t:"A good plan violently executed now is better than a perfect plan next week.",a:"Gen. George S. Patton"},
- {t:"Hard choices, easy life. Easy choices, hard life.",a:"Jerzy Gregorek"},
- {t:"Believe you can and you’re halfway there.",a:"Theodore Roosevelt"},
- {t:"Do today what others won’t, so tomorrow you can do what others can’t.",a:"Jerry Rice"},
- {t:"I hated every minute of training, but I said, 'Don't quit.'",a:"Muhammad Ali"},
- {t:"Champions keep playing until they get it right.",a:"Billie Jean King"},
- {t:"Just keep going. Everybody gets better if they keep at it.",a:"Ted Williams"},
- {t:"Be so good they can’t ignore you.",a:"Steve Martin"},
- {t:"Fall seven times and stand up eight.",a:"Japanese Proverb"},
- {t:"Pressure is a privilege.",a:"Billie Jean King"},
- {t:"A river cuts through rock because of persistence.",a:"James N. Watkins"},
- {t:"Success is never owned; it is rented—and the rent is due every day.",a:"Rory Vaden"},
- {t:"Do not pray for an easy life; pray for the strength to endure a difficult one.",a:"Bruce Lee"},
- {t:"If it doesn’t challenge you, it doesn’t change you.",a:"Fred DeVito"},
- {t:"If you want to be the best, you have to do things others aren’t willing to do.",a:"Michael Phelps"},
- {t:"Train hard, turn up, run your best and the rest will take care of itself.",a:"Usain Bolt"},
- {t:"Champions behave like champions before they’re champions.",a:"Bill Walsh"},
- {t:"The standard is the standard.",a:"Mike Tomlin"},
- {t:"Ego is the enemy.",a:"Ryan Holiday"},
- {t:"The obstacle is the way.",a:"Ryan Holiday"}
-];
-function showQuoteFor(d){
-  const seed = parseInt(ymd(d).replace(/-/g,''),10);
-  const idx = seed % QUOTES.length;
-  const q = QUOTES[idx];
-  document.getElementById('quoteTxt').textContent = '“'+q.t+'”';
-  document.getElementById('quoteAuth').textContent = '— '+q.a;
-}
-
-// ----------------- Foods & Nutrition -----------------
-const FOODS = {
-  "Salmon, wild": {k:208,p:20,c:0,f:13},
-  "Venison": {k:158,p:26,c:0,f:6},
-  "Bear meat": {k:176,p:24,c:0,f:8},
-  "Eggs": {k:155,p:13,c:1.1,f:11},
-  "Egg whites": {k:52,p:11,c:0.7,f:0.2},
-  "Oats, dry": {k:379,p:13,c:67,f:7},
-  "White rice, cooked": {k:130,p:2.4,c:28,f:0.3},
-  "Brown rice, cooked": {k:123,p:2.6,c:25.6,f:1},
-  "Potatoes, white": {k:87,p:2.0,c:20,f:0.1},
-  "Banana": {k:89,p:1.1,c:23,f:0.3},
-  "Broccoli": {k:35,p:2.4,c:7.2,f:0.4},
-  "Olive oil": {k:884,p:0,c:0,f:100},
-  "Greek yogurt, nonfat": {k:59,p:10,c:3.6,f:0.4},
-  "Peanut butter": {k:588,p:25,c:20,f:50},
-  "Blueberries": {k:57,p:0.7,c:14.5,f:0.3}
-};
-const FOOD_NAMES = Object.keys(FOODS);
-
-function addFoodRow(data){
-  const tbody=document.querySelector('#foodTbl tbody');
-  const tr=document.createElement('tr');
-  tr.innerHTML=`
-    <td>
-      <select class="foodSel"></select>
-    </td>
-    <td><input type="number" class="g" min="0" step="5" value="${data?.g??100}"></td>
-    <td class="kk">0</td><td class="pp">0</td><td class="cc">0</td><td class="ff">0</td>
-    <td><button class="btn" data-del>✕</button></td>`;
-  const sel=tr.querySelector('.foodSel');
-  FOOD_NAMES.forEach(n=>{ const o=document.createElement('option'); o.value=n;o.textContent=n; sel.appendChild(o); });
-  sel.value = (data?.name && FOODS[data.name])?data.name:FOOD_NAMES[0];
-  sel.onchange=updateNutrition; tr.querySelector('.g').oninput=updateNutrition;
-  tr.querySelector('[data-del]').onclick=()=>{ tr.remove(); updateNutrition(); saveFoods(); };
-  tbody.appendChild(tr);
-}
-function getFoodsFromUI(){
-  return Array.from(document.querySelectorAll('#foodTbl tbody tr')).map(tr=>({
-    name: tr.querySelector('.foodSel').value,
-    g: parseFloat(tr.querySelector('.g').value||0)
-  }));
-}
-function saveFoods(){
-  const db=loadDB(); db['foods_'+ymd(current)]=getFoodsFromUI(); saveDB(db);
-}
-function loadFoods(){
-  const db=loadDB(); const arr=db['foods_'+ymd(current)]||[];
-  document.querySelector('#foodTbl tbody').innerHTML='';
-  if(arr.length){ arr.forEach(r=>addFoodRow(r)); } else { addFoodRow({name:FOOD_NAMES[0],g:150}); }
-  updateNutrition();
-}
-function updateNutrition(){
-  let K=0,P=0,C=0,F=0;
-  document.querySelectorAll('#foodTbl tbody tr').forEach(tr=>{
-    const name=tr.querySelector('.foodSel').value; const g=parseFloat(tr.querySelector('.g').value||0);
-    const f=FOODS[name]; const mult=g/100;
-    const kk=Math.round(f.k*mult); const pp=(f.p*mult); const cc=(f.c*mult); const ff=(f.f*mult);
-    tr.querySelector('.kk').textContent=kk;
-    tr.querySelector('.pp').textContent=pp.toFixed(1);
-    tr.querySelector('.cc').textContent=cc.toFixed(1);
-    tr.querySelector('.ff').textContent=ff.toFixed(1);
-    K+=kk; P+=pp; C+=cc; F+=ff;
-  });
-  document.getElementById('totKcal').textContent=K;
-  document.getElementById('totP').textContent=P.toFixed(0);
-  document.getElementById('totC').textContent=C.toFixed(0);
-  document.getElementById('totF').textContent=F.toFixed(0);
-  const kT=parseInt(getPref('kcal',2500)), pT=parseInt(getPref('pT',200)), cT=parseInt(getPref('cT',250)), fT=parseInt(getPref('fT',80));
-  document.getElementById('barK').max=kT; document.getElementById('barP').max=pT;
-  document.getElementById('barC').max=cT; document.getElementById('barF').max=fT;
-  document.getElementById('barK').value=K; document.getElementById('barP').value=P;
-  document.getElementById('barC').value=C; document.getElementById('barF').value=F;
-  saveFoods();
-}
-document.getElementById('addFood').onclick=()=>{ addFoodRow(); updateNutrition(); saveFoods(); };
-document.getElementById('saveNutrition').onclick=()=>{
-  setPref('kcal', parseInt(document.getElementById('calTarget').value||2500));
-  setPref('pT', parseInt(document.getElementById('pTarget').value||200));
-  setPref('cT', parseInt(document.getElementById('cTarget').value||250));
-  setPref('fT', parseInt(document.getElementById('fTarget').value||80));
-  updateNutrition();
-};
-document.getElementById('calTarget').value=getPref('kcal',2500);
-document.getElementById('pTarget').value=getPref('pT',200);
-document.getElementById('cTarget').value=getPref('cT',250);
-document.getElementById('fTarget').value=getPref('fT',80);
-
-// ----------------- Strength plans -----------------
-const STRENGTH = {
-  "Mon":[
-    {n:"Bench Press", s:"4×6–8"}, {n:"Incline DB Press", s:"3×8–10"},
-    {n:"One-arm DB Row", s:"4×8"}, {n:"Lat Pulldown", s:"3×10"},
-    {n:"Farmer Carries (steps)", s:"3×40"}, {n:"Plank (sec)", s:"3×45"}
-  ],
-  "Tue":[ {n:"Easy Run", s:"see plan"} ],
-  "Wed":[
-    {n:"Pull-ups or Assisted", s:"4×AMRAP"}, {n:"Barbell/DB Row", s:"4×8"},
-    {n:"DB Curls", s:"3×12"}, {n:"Face Pulls", s:"3×12"},
-    {n:"Sled Push/Walk (m)", s:"6×20"}
-  ],
-  "Thu":[ {n:"Steady Run / Tempo", s:"see plan"} ],
-  "Fri":[
-    {n:"DB Shoulder Press", s:"4×8"}, {n:"Dips or Assisted", s:"3×AMRAP"},
-    {n:"Cable Flyes", s:"3×12"}, {n:"Hammer Curls", s:"3×10"},
-    {n:"Hip Thrusts (light/mod)", s:"3×10"}
-  ],
-  "Sat":[ {n:"Long Run", s:"see plan"} ],
-  "Sun":[ {n:"Active Recovery / Mobility", s:"20–30 min"} ]
-};
-function workoutFor(dow){
-  const names=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]; return STRENGTH[names[dow]]||[];
-}
-function renderWorkouts(d){
-  const w=workoutFor(d.getDay());
-  const cont=document.getElementById('workouts'); cont.innerHTML="";
-  w.forEach((ex,i)=>{
-    const row=document.createElement('div'); row.className='ex'; row.innerHTML=`
-      <div><b>${ex.n}</b> <span class="muted">${ex.s}</span>
-        <div><textarea rows="2" placeholder="Notes for this exercise (optional)"></textarea></div>
-      </div>
-      <input type="number" placeholder="kg" step="1">
-      <input type="number" placeholder="reps" step="1">
-      <div class="muted">log weight & reps</div>
-      <input type="checkbox">
-    `;
-    cont.appendChild(row);
-  });
-}
-
-// ----------------- Run plan generator -----------------
-function weeksBetween(a,b){ return Math.max(1, Math.round((b-a)/(7*86400000))); }
-function buildPlan(startDate, raceDate){
-  // Progressive: long run grows from 4 km -> peak ~19-20 km two weeks pre-race
-  const weeks = weeksBetween(new Date(startDate), new Date(raceDate));
-  const plan=[]; let lr = 4; // km
-  for(let w=1; w<=weeks; w++){
-    // Every 4th week: recovery (reduce 30%)
-    if(w%4===0 && lr>6){ lr = Math.max(5, Math.round(lr*0.7)); }
-    else { lr = Math.min(20, lr + 1); } // grow 1 km / wk up to 20
-    // Build weekly structure
-    const tue = Math.max(3, Math.round(lr*0.4));   // easy
-    const thu = Math.max(4, Math.round(lr*0.55));  // steady/tempo short
-    // Make it peak 2 weeks out
-    if(w>=weeks-2){ if(w===weeks-1) lr = Math.round(lr*0.6); if(w===weeks) lr = 10; } // taper
-    plan.push({week:w,tue,thu,lr});
-  }
-  return plan;
-}
-function planForDate(d){
-  const start=new Date(getPref('start', defaultStart));
-  const race=new Date(getPref('race', defaultRace));
-  const ms = d - start; const weekIndex = Math.max(0, Math.floor(ms/(7*86400000)));
-  const plan = buildPlan(start, race);
-  return plan[Math.min(weekIndex, plan.length-1)];
-}
-function renderRun(d){
-  const p=planForDate(d);
-  const names=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]; const dow=d.getDay();
-  let txt="Rest or cross-train.";
-  if(dow===2) txt=`Easy run ${p.tue} <span class="muted">km</span>`;
-  if(dow===4) txt=`Steady/tempo ${p.thu} <span class="muted">km</span>`;
-  if(dow===6) txt=`Long run ${p.lr} <span class="muted">km</span>`;
-  document.getElementById('runPlan').innerHTML = txt;
-  document.getElementById('distUnit').textContent = (getPref('units','metric')==='metric'?'km':'mi');
-  document.getElementById('paceUnit').textContent = (getPref('units','metric')==='metric'?'km':'mi');
-}
-
-// ----------------- Pace calc -----------------
-function updatePace(){
-  const dist=parseFloat(document.getElementById('runDist').value||0);
-  const mins=parseFloat(document.getElementById('runMins').value||0);
-  if(dist>0 && mins>0){
-    const p = mins/dist;
-    const m=Math.floor(p); const s=Math.round((p-m)*60).toString().padStart(2,'0');
-    document.getElementById('pace').textContent = `${m}:${s} min`;
-    document.getElementById('load').textContent = (dist*mins/10).toFixed(1);
-  } else {
-    document.getElementById('pace').textContent='—'; document.getElementById('load').textContent='—';
-  }
-}
-document.getElementById('runDist').oninput=updatePace;
-document.getElementById('runMins').oninput=updatePace;
-
-// ----------------- Date nav -----------------
-let current = new Date(getPref('cur', ymd(new Date())));
-function setDate(d){
-  current=d; setPref('cur', ymd(current));
-  document.getElementById('dateLabel').textContent = current.toLocaleDateString(undefined,{weekday:'short',year:'numeric',month:'short',day:'numeric'});
-  renderWorkouts(current); renderRun(current); showQuoteFor(current); loadFoods();
-}
-document.getElementById('prevDay').onclick=()=>setDate(new Date(current.getTime()-86400000));
-document.getElementById('nextDay').onclick=()=>setDate(new Date(current.getTime()+86400000));
-
-function renderAll(){ setDate(current); }
-
-// Init
-setDate(current);
-</script>
+    function showQuote() {
+      const today = new Date();
+      const seed = today.getFullYear()*1000 + today.getMonth()*100 + today.getDate();
+      const idx = seed % QUOTES.length;
+      const q = QUOTES[idx];
+      document.getElementById("quoteBox").innerHTML = 
+        `<div class='quote'>"${q.q}"</div><div class='author'>— ${q.a}</div>`;
+    }
+    showQuote();
+  </script>
 </body>
 </html>
