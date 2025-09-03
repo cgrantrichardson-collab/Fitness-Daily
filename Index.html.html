@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fitness Daily</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#111111">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin:0; background:#0f1115; color:#eaeaea; }
+    header { position:sticky; top:0; background:#12151b; padding:12px 16px; border-bottom:1px solid #222; display:flex; align-items:center; gap:8px; z-index:5;}
+    h1 { font-size:18px; margin:0; }
+    main { padding:16px; max-width:900px; margin:0 auto; }
+    .row { display:flex; flex-wrap:wrap; gap:16px; }
+    .card { background:#151922; border:1px solid #232735; border-radius:12px; padding:16px; flex:1 1 300px; min-width:300px; }
+    .card h2 { margin:0 0 8px 0; font-size:16px; }
+    .muted { color:#9aa3b2; font-size:13px; }
+    .chips { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0; }
+    .chip { padding:6px 10px; border-radius:999px; background:#1b2030; border:1px solid #2a3144; font-size:12px; }
+    .list { margin:8px 0; }
+    .item { display:flex; align-items:flex-start; gap:8px; padding:8px 0; border-bottom:1px dashed #2a3144; }
+    .item:last-child { border-bottom:none; }
+    input[type="checkbox"] { width:18px; height:18px; accent-color:#00d17a; }
+    .controls { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    button { background:#1e2535; color:#eaeaea; border:1px solid #2c3347; border-radius:8px; padding:8px 12px; cursor:pointer; }
+    button:hover { background:#232b3e; }
+    input, select { background:#0e1117; color:#eaeaea; border:1px solid #2b3244; border-radius:8px; padding:8px 10px; }
+    .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    footer { padding:24px; text-align:center; color:#7f8aa3; }
+    .success { color:#00d17a; }
+    .danger { color:#ff6b6b; }
+    a { color:#80b3ff; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Fitness Daily</h1>
+  <div style="margin-left:auto" class="controls">
+    <button id="prevDay">◀︎</button>
+    <input type="date" id="datePicker">
+    <button id="nextDay">▶︎</button>
+  </div>
+</header>
+<main>
+  <div class="row">
+    <div class="card" style="flex:1 1 100%">
+      <div class="controls">
+        <div>
+          <div class="muted">Plan start date</div>
+          <input type="date" id="startDate">
+        </div>
+        <div>
+          <div class="muted">Phase</div>
+          <select id="phase">
+            <option value="auto">Auto by date</option>
+            <option value="p1">Phase 1 (Base)</option>
+            <option value="p2">Phase 2 (Half Marathon)</option>
+          </select>
+        </div>
+        <div>
+          <div class="muted">Units</div>
+          <select id="units">
+            <option value="metric" selected>Metric</option>
+          </select>
+        </div>
+        <div style="margin-left:auto">
+          <button id="savePrefs">Save</button>
+        </div>
+      </div>
+      <div class="muted">Tip: add this app to your Home Screen. It works offline.</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h2 id="dayTitle">Today</h2>
+      <div class="muted" id="weekInfo"></div>
+      <div class="chips" id="chips"></div>
+      <div class="list" id="agenda"></div>
+    </div>
+    <div class="card">
+      <h2>Nutrition (daily targets)</h2>
+      <div class="chips">
+        <div class="chip">2,400–2,600 kcal</div>
+        <div class="chip">Protein 200–220 g</div>
+        <div class="chip">Fat 70–80 g</div>
+      </div>
+      <div class="list" id="meals"></div>
+      <div class="muted">Substitutions allowed. See list below.</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card" style="flex:1 1 100%">
+      <h2>Food Substitutions</h2>
+      <div class="grid-2" id="subs"></div>
+    </div>
+  </div>
+</main>
+<footer>© 2025 Your Fitness Plan • Offline-capable PWA</footer>
+
+<script>
+const START_DATE_DEFAULT = "2025-09-01"; // YYYY-MM-DD
+const strength = {
+  push: [
+    "Bench Press – 4×8",
+    "Seated DB Shoulder Press – 4×8",
+    "Incline DB Press – 3×10",
+    "DB Lateral Raises – 3×15",
+    "Rope Pushdowns – 3×12–15"
+  ],
+  pull: [
+    "Lat Pulldown – 4×8",
+    "Barbell/DB Row – 4×8",
+    "Face Pulls – 3×12",
+    "DB Curls – 3×12",
+    "Farmer Carries – 3×40 steps"
+  ],
+  lower: [
+    "Trap Bar Deadlift – 4×6",
+    "Bulgarian Split Squats – 3×8/leg",
+    "Step-ups – 3×12/leg",
+    "Glute Bridges/Hip Thrusts – 3×12–15",
+    "Plank – 3×45–60s"
+  ]
+};
+
+const p1Runs = [
+  [2, 2.5, 3], [2, 2.5, 3], [3, 3, 4], [3, 3, 4],
+  [3.5, 3, 5], [3.5, 3, 5], [4, 3.5, 6], [4, 3.5, 6],
+  [4.5, 3.5, 7], [4.5, 3.5, 7], [5, 4, 8], [5, 4, 8],
+  [5, 4.5, 9], [5, 4.5, 9], [5.5, 5, 10], [5.5, 5, 10],
+  [6, 5, 10], [6, 5, 10], [6, 5, 10], [6.5, 5, 10],
+  [6.5, 5, 10], [7, 5, 10], [7, 5, 10], [7, 5, 10]
+]; // Tue easy, Thu tempo, Sat long
+
+const p2Runs = [
+  [6, "6×400 m", 10],
+  [6.5, "4×1 km", 12],
+  [7, "Tempo 5 km", 14],
+  [7.5, "8×400 m", 16],
+  [8, "Tempo 6 km", 18],
+  [8, "5×1 km", 20],
+  [6, "Tempo 5 km", 12],
+  [4, "3×400 m (light)", 21.1]
+];
+
+const meals = [
+  ["Breakfast", [["Eggs", 220], ["Rolled oats", 70], ["Blueberries", 100]]],
+  ["Snack", [["Whey isolate (powder)", 40], ["Banana", 120], ["Almonds", 30]]],
+  ["Lunch", [["Venison steak (cooked)", 200], ["White rice (cooked)", 150], ["Roasted vegetables", 250], ["Olive oil", 15]]],
+  ["Snack", [["Greek yogurt (2%)", 200], ["Honey", 10], ["Raspberries", 100]]],
+  ["Dinner", [["Salmon (cooked)", 200], ["Potatoes (cooked)", 250], ["Salad + olive oil", "150 + 15"]]],
+  ["Evening", [["Cottage cheese (2%)", 200], ["Peanut butter", 20]]]
+];
+
+const substitutions = [
+  ["Eggs", "Egg whites, turkey bacon, lean ground chicken"],
+  ["Rolled oats", "Quinoa flakes, cream of rice, brown rice cereal"],
+  ["Blueberries", "Strawberries, raspberries, apple slices"],
+  ["Whey isolate", "Greek yogurt, cottage cheese, pea protein"],
+  ["Banana", "Apple, pear, orange"],
+  ["Almonds", "Cashews, pumpkin seeds, sunflower seeds"],
+  ["Venison steak", "Chicken breast, lean beef, turkey, bison"],
+  ["White rice", "Brown rice, quinoa, couscous, barley"],
+  ["Roasted vegetables", "Steamed broccoli, zucchini, asparagus, green beans"],
+  ["Olive oil", "Avocado oil, canola oil, flaxseed oil"],
+  ["Greek yogurt", "Skyr, cottage cheese, soy yogurt"],
+  ["Honey", "Maple syrup, agave nectar, dates"],
+  ["Raspberries", "Strawberries, blueberries, peaches"],
+  ["Salmon", "Trout, mackerel, sardines, tuna"],
+  ["Potatoes", "Rice, pasta, butternut squash, beets"],
+  ["Salad greens", "Spinach, kale, arugula, mixed greens"],
+  ["Cottage cheese", "Ricotta, skyr, soy yogurt"],
+  ["Peanut butter", "Almond or cashew butter, sunflower seed butter"]
+];
+
+const $ = (sel) => document.querySelector(sel);
+function fmtDate(d){ return d.toISOString().slice(0,10); }
+function getWeekIndex(start, d){ const ms=(d-start); const days=Math.floor(ms/86400000); return Math.floor(days/7);}
+function getPhaseAndWeek(start, d){
+  const idx = getWeekIndex(start, d);
+  if (idx <= 23) return ["p1", idx+1];
+  return ["p2", idx-23];
+}
+function save(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+function load(key, def){ try { return JSON.parse(localStorage.getItem(key)) ?? def; } catch(e) { return def; } }
+
+function render(){
+  const prefs = load("prefs", {startDate: START_DATE_DEFAULT, phase: "auto"});
+  const start = new Date(prefs.startDate + "T00:00:00");
+  const today = new Date($("#datePicker").value + "T00:00:00");
+  let [phase, wk] = getPhaseAndWeek(start, today);
+  if (prefs.phase !== "auto") phase = prefs.phase;
+  if (phase === "p2" && wk > 8) wk = 8;
+  if (phase === "p1" && wk < 1) wk = 1;
+
+  $("#dayTitle").textContent = today.toDateString();
+  $("#weekInfo").textContent = (phase === "p1" ? "Phase 1" : "Phase 2") + " • Week " + wk;
+  $("#chips").innerHTML = "";
+
+  const weekday = today.getDay(); // 0 Sun .. 6 Sat
+  let agendaItems = [];
+  if (weekday === 1) agendaItems = strength.push.map((t,i)=>({type:"check", text:t, key:"push-"+i}));
+  else if (weekday === 3) agendaItems = strength.pull.map((t,i)=>({type:"check", text:t, key:"pull-"+i}));
+  else if (weekday === 5) agendaItems = strength.lower.map((t,i)=>({type:"check", text:t, key:"lower-"+i}));
+  else if (weekday === 2 || weekday === 4 || weekday === 6) {
+    if (phase === "p1") {
+      const tri = p1Runs[wk-1] || p1Runs[p1Runs.length-1];
+      const runText = (d)=> (d===2?`Run ${tri[0]} km easy` : d===4?`Run ${tri[1]} km tempo` : `Long run ${tri[2]} km`);
+      agendaItems = [{type:"check", text:runText(weekday), key:"run"}];
+    } else {
+      const tri = p2Runs[wk-1] || p2Runs[p2Runs.length-1];
+      let desc = "";
+      if (weekday===2) desc = `Run ${tri[0]} km easy`;
+      if (weekday===4) desc = typeof tri[1]==="string" ? `Intervals: ${tri[1]}` : `Tempo: ${tri[1]}`;
+      if (weekday===6) desc = `Long run ${tri[2]} km`;
+      agendaItems = [{type:"check", text:desc, key:"run"}];
+    }
+  } else if (weekday === 0) {
+    agendaItems = [{type:"note", text:"Rest / mobility / family day"}];
+  } else {
+    agendaItems = [{type:"note", text:"Light mobility, optional walk"}];
+  }
+
+  const completed = load("completed:"+fmtDate(today), {});
+  const agEl = $("#agenda");
+  agEl.innerHTML = "";
+  agendaItems.forEach((it)=> {
+    const row = document.createElement("div");
+    row.className = "item";
+    if (it.type==="check") {
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = !!completed[it.key];
+      cb.onchange = () => { completed[it.key] = cb.checked; save("completed:"+fmtDate(today), completed); };
+      row.appendChild(cb);
+    } else {
+      const dot = document.createElement("div");
+      dot.style.width="10px"; dot.style.height="10px"; dot.style.borderRadius="999px"; dot.style.background="#9aa3b2";
+      row.appendChild(dot);
+    }
+    const text = document.createElement("div");
+    text.textContent = it.text;
+    row.appendChild(text);
+    agEl.appendChild(row);
+  });
+
+  const mealsEl = $("#meals");
+  mealsEl.innerHTML = "";
+  meals.forEach(([title, items], i)=> {
+    const wrap = document.createElement("div"); wrap.className = "item";
+    const cb = document.createElement("input"); cb.type = "checkbox";
+    cb.checked = !!completed["meal-"+i];
+    cb.onchange = () => { completed["meal-"+i] = cb.checked; save("completed:"+fmtDate(today), completed); };
+    wrap.appendChild(cb);
+    const text = document.createElement("div");
+    text.innerHTML = `<strong>${title}</strong> — ` + items.map(([name, g]) => `${name} (${typeof g === 'number' ? g+' g' : g})`).join(", ");
+    wrap.appendChild(text);
+    mealsEl.appendChild(wrap);
+  });
+
+  const subsEl = $("#subs"); subsEl.innerHTML = "";
+  substitutions.forEach(([base, opts])=> {
+    const box = document.createElement("div"); box.className = "card";
+    box.innerHTML = `<strong>${base}</strong><div class="muted">${opts}</div>`;
+    subsEl.appendChild(box);
+  });
+}
+
+function init(){
+  const prefs = load("prefs", {startDate: START_DATE_DEFAULT, phase: "auto"});
+  document.getElementById("startDate").value = prefs.startDate;
+  document.getElementById("phase").value = prefs.phase;
+  document.getElementById("datePicker").value = fmtDate(new Date());
+  document.getElementById("savePrefs").onclick = () => {
+    save("prefs", {
+      startDate: document.getElementById("startDate").value || START_DATE_DEFAULT,
+      phase: document.getElementById("phase").value
+    });
+    render();
+  };
+  document.getElementById("prevDay").onclick = () => { const d = new Date(document.getElementById("datePicker").value); d.setDate(d.getDate()-1); document.getElementById("datePicker").value = fmtDate(d); render(); };
+  document.getElementById("nextDay").onclick = () => { const d = new Date(document.getElementById("datePicker").value); d.setDate(d.getDate()+1); document.getElementById("datePicker").value = fmtDate(d); render(); };
+  document.getElementById("datePicker").onchange = render;
+  render();
+}
+document.addEventListener("DOMContentLoaded", init);
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js"); });
+}
+</script>
+</body>
+</html>
