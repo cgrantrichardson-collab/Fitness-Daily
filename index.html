@@ -6,14 +6,22 @@
 <link rel="icon" href="favicon.png" sizes="32x32">
 <link rel="apple-touch-icon" href="icon-180.png">
 <style>
-#appSplash {position:fixed; inset:0; background:#000 url('splash-portrait.png') center center/cover no-repeat; z-index:9999; opacity:1; transition:opacity .4s;}
-#appSplash.hide {opacity:0; pointer-events:none;}
+body{margin:0;font-family:sans-serif;background:#111;color:#eee}
+/* SPLASH STYLES FIX */
+#appSplash{position:fixed;inset:0;background:#000 url('splash-portrait.png') center center/contain no-repeat;
+ z-index:9999;opacity:1;transition:opacity .35s}
+#appSplash.hide{opacity:0;pointer-events:none}
 </style>
 </head>
-<body><div id="appSplash"></div>
+<body>
+<div id="appSplash"></div>
+<h1 style="padding:1em">Fitness Daily App</h1>
+<p>Your full app content will load here.</p>
 <script>
-function hideSplash(){setTimeout(()=>{document.getElementById('appSplash').classList.add('hide');},1000);}
-window.addEventListener('load', hideSplash);
+function hideSplashSoon(){
+ const el=document.getElementById('appSplash'); if(!el) return;
+ setTimeout(()=>{el.classList.add('hide'); setTimeout(()=>{el.remove&&el.remove();},400);},800);
+}
+window.addEventListener('load', hideSplashSoon);
 </script>
-<p>Fitness Daily app files updated with icon + splash.</p>
 </body></html>
