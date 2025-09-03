@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Fitness Daily — v18.1</title>
+<title>Fitness Daily — v21</title>
 <meta name="theme-color" content="#000000">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="favicon.png">
@@ -96,7 +96,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.s
 
       <section class="card" style="flex:2 1 480px">
         <h2 id="workoutTitle">Today’s Strength</h2>
-        <div class="muted" id="workoutSubtitle">A/B upper split (knee-friendly). Notes are per exercise.</div>
+        <div class="muted" id="workoutSubtitle">Upper A / Upper B / Legs (knee-friendly). Notes are per exercise.</div>
         <div id="liftsWrap"></div>
         <div style="display:flex;gap:8px;margin-top:12px"><button class="btn" id="saveLifts">Save</button><button class="btn alt" id="clearLifts">Clear day</button></div>
       </section>
@@ -188,7 +188,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.s
   <!-- RUN PLAN -->
   <div id="viewRunPlan" style="display:none">
     <section class="card"><h2>Half-Marathon Build (km)</h2>
-      <p class="muted">Gentle ramp. Peak long run ~2 weeks before race. Tue easy; Thu easy/tempo; Sat long with periodic step-backs; 2-week taper.</p>
+      <p class="muted">Gentle ramp. Peak long run ~2 weeks before race. Tue easy; Thu steady/tempo; Sat long with periodic step-backs; 2-week taper.</p>
       <div id="planTable" class="muted"></div>
     </section>
   </div>
@@ -217,35 +217,34 @@ function ymd(d){ return d.toISOString().slice(0,10); }
 function fmt(d){ return d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',year:'numeric'}); }
 const KEY='fdaily'; const db=JSON.parse(localStorage.getItem(KEY)||'{}'); function save(){ localStorage.setItem(KEY,JSON.stringify(db)); }
 function getPref(k,def){ return (db['_pref_'+k]??def); } function setPref(k,v){ db['_pref_'+k]=v; save(); }
-// Auto defaults (tomorrow start; race 2026-06-21)
+// Defaults: start=tomorrow, race fixed, nutrition targets with calories=2200
 if(getPref('start',null)==null){ const t=new Date(Date.now()+dayMS); const dt=new Date(t.getFullYear(),t.getMonth(),t.getDate()); setPref('start', ymd(dt)); }
 if(getPref('race',null)==null){ setPref('race','2026-06-21'); }
+if(getPref('macro_K',null)==null) setPref('macro_K',2200); // *** default calories 2200 ***
+if(getPref('macro_P',null)==null) setPref('macro_P',200);
+if(getPref('macro_C',null)==null) setPref('macro_C',250);
+if(getPref('macro_F',null)==null) setPref('macro_F',80);
 
 document.getElementById('prevDay').onclick=()=>setDate(new Date(current.getTime()-dayMS));
 document.getElementById('nextDay').onclick=()=>setDate(new Date(current.getTime()+dayMS));
 document.getElementById('setStartBtn').onclick=()=>{ const s=prompt('Plan START (YYYY-MM-DD):',getPref('start')); if(s&&/^\\d{4}-\\d{2}-\\d{2}$/.test(s)){ setPref('start',s); rebuildPlan(); setDate(current);} };
 document.getElementById('setRaceBtn').onclick=()=>{ const r=prompt('RACE (YYYY-MM-DD):',getPref('race')); if(r&&/^\\d{4}-\\d{2}-\\d{2}$/.test(r)){ setPref('race',r); rebuildPlan(); setDate(current);} };
 
-// Targets (defaults; user adjustable)
-if(getPref('macro_K',null)==null) setPref('macro_K',2500); // kcal
-if(getPref('macro_P',null)==null) setPref('macro_P',200);
-if(getPref('macro_C',null)==null) setPref('macro_C',250);
-if(getPref('macro_F',null)==null) setPref('macro_F',80);
-
+// Targets UI
 function showTargetsText(){
-  document.getElementById('targetsText').textContent = `K ${getPref('macro_K',2500)} • P ${getPref('macro_P',200)}g • C ${getPref('macro_C',250)}g • F ${getPref('macro_F',80)}g`;
+  document.getElementById('targetsText').textContent = `K ${getPref('macro_K',2200)} • P ${getPref('macro_P',200)}g • C ${getPref('macro_C',250)}g • F ${getPref('macro_F',80)}g`;
 }
 document.getElementById('setTargetsBtn').onclick=()=>{
-  const k = prompt('Daily calories target (kcal):', getPref('macro_K',2500));
+  const k = prompt('Daily calories target (kcal):', getPref('macro_K',2200));
   const p = prompt('Daily protein target (g):', getPref('macro_P',200));
   const c = prompt('Daily carbs target (g):', getPref('macro_C',250));
   const f = prompt('Daily fat target (g):', getPref('macro_F',80));
   const val=(x,def)=>{const n=parseFloat(x);return isFinite(n)&&n>=0?n:def;}
-  setPref('macro_K', val(k,2500)); setPref('macro_P', val(p,200)); setPref('macro_C', val(c,250)); setPref('macro_F', val(f,80));
+  setPref('macro_K', val(k,2200)); setPref('macro_P', val(p,200)); setPref('macro_C', val(c,250)); setPref('macro_F', val(f,80));
   showTargetsText(); updateTotals();
 };
 
-// ===== Expanded Quotes ONLY change vs v18 =====
+// Quotes (expanded)
 const QUOTES=[
   {t:"Discipline equals freedom.",a:"Jocko Willink"},
   {t:"Stay hard.",a:"David Goggins"},
@@ -300,28 +299,37 @@ const QUOTES=[
 ];
 function showQuoteFor(d){ const seed=parseInt(ymd(d).replaceAll('-',''),10)%QUOTES.length; const q=QUOTES[seed]; document.getElementById('quoteText').innerHTML=`<b>“${q.t}”</b><br><span class="muted">— ${q.a}</span>`; }
 
-// Strength split (upper-focused, knee-friendly)
+// Strength split: Mon Upper A, Wed Upper B, Fri Legs
 const UPPER_A=[
-  {name:"Lat Pulldown",sets:4,reps:8,key:"latpulldown"},
-  {name:"Barbell/DB Row",sets:4,reps:8,key:"row"},
   {name:"Incline DB Press",sets:4,reps:8,key:"incline"},
-  {name:"Face Pulls",sets:3,reps:12,key:"facepulls"},
-  {name:"Curl (EZ/DB)",sets:3,reps:10,key:"curl"}
+  {name:"One-arm DB Row",sets:4,reps:8,key:"onearmrow"},
+  {name:"Lat Pulldown",sets:3,reps:10,key:"pulldown"},
+  {name:"DB Bench Press",sets:3,reps:10,key:"dbbench"},
+  {name:"Face Pulls",sets:3,reps:12,key:"facepulls"}
 ];
 const UPPER_B=[
   {name:"Pull-ups/Assisted",sets:4,reps:6,key:"pullups"},
-  {name:"Seated Cable Row",sets:4,reps:10,key:"cablerow"},
-  {name:"DB Bench Press",sets:4,reps:8,key:"dbbench"},
-  {name:"Rear Delt Fly",sets:3,reps:12,key:"reardelt"},
-  {name:"Triceps Pressdown",sets:3,reps:10,key:"triceps"}
+  {name:"Barbell/DB Row",sets:4,reps:8,key:"row"},
+  {name:"DB Shoulder Press",sets:4,reps:8,key:"dbpress"},
+  {name:"Cable Flyes",sets:3,reps:12,key:"cablefly"},
+  {name:"Hammer Curls",sets:3,reps:10,key:"hamcurl"}
 ];
+const LEGS=[ // knee-friendly focus
+  {name:"Hip Hinge (RDL)",sets:4,reps:8,key:"rdl"},
+  {name:"Hip Thrust (light/mod)",sets:3,reps:10,key:"hipthrust"},
+  {name:"Step-ups (low box)",sets:3,reps:10,key:"stepup"},
+  {name:"Sled Push/Walk (m)",sets:6,reps:20,key:"sled"},
+  {name:"Plank (sec)",sets:3,reps:45,key:"plank"}
+];
+
 function dayDiff(a,b){ return Math.floor((b-a)/(24*60*60*1000)); }
 function weekIndex(startStr,d){ const start=new Date(startStr+'T00:00:00'); const diff=dayDiff(start,d); return Math.max(0, Math.floor(diff/7)); }
 function workoutForDate(d){
-  const dow=d.getDay(); const wk=weekIndex(getPref('start'),d); const isA=(wk%2===0);
-  if([1,3,5].includes(dow)) return {title:`Upper ${isA?'A':'B'}`,list:(isA?UPPER_A:UPPER_B)};
-  if(dow===0) return {title:"Mobility / Off",list:[]};
-  return {title:"Accessory / Light",list:[]};
+  const dow=d.getDay(); // 0 Sun..6 Sat
+  if(dow===1) return {title:"Upper A (Mon)", list:UPPER_A};
+  if(dow===3) return {title:"Upper B (Wed)", list:UPPER_B};
+  if(dow===5) return {title:"Legs (Fri)", list:LEGS};
+  return {title:"Accessory / Recovery", list:[]};
 }
 const liftsWrap=document.getElementById('liftsWrap');
 function liftRowHTML(key,name,sets,reps){
@@ -331,7 +339,7 @@ function liftRowHTML(key,name,sets,reps){
 function renderWorkout(d){
   const wk=workoutForDate(d);
   document.getElementById('workoutTitle').textContent=wk.title||"Today’s Strength";
-  document.getElementById('workoutSubtitle').textContent=wk.list.length?"Log your actual weights/reps. Notes are per exercise.":"Run/mobility day. Add accessories if desired.";
+  document.getElementById('workoutSubtitle').textContent=wk.list.length?"Log your actual weights/reps. Notes are per exercise.":"Run/mobility day or rest.";
   liftsWrap.innerHTML=wk.list.length?wk.list.map(x=>liftRowHTML(x.key,x.name,x.sets,x.reps)).join(""):`<div class="muted">No main lifts scheduled.</div>`;
 }
 
@@ -341,26 +349,28 @@ function loadLifts(){const obj=db[liftKey()]||{};document.querySelectorAll('[dat
 function persistLifts(){const obj={};document.querySelectorAll('[data-lift]').forEach(el=>{const id=el.dataset.lift+":"+el.dataset.field;if(el.value&&el.value.toString().trim()!=="")obj[id]=el.value;});db[liftKey()]=obj;save();drawCharts();}
 document.getElementById('saveLifts').onclick=persistLifts;document.getElementById('clearLifts').onclick=()=>{delete db[liftKey()];save();renderWorkout(current);};
 
-// Progressive run plan (gentle; longest ~2w before race)
+// Progressive run plan: Tue/Thu/Sat (Sat long), gentle ramp, peak ~2w pre-race
 function runTargetFor(d){
-  const startStr=getPref('start'); const raceStr=getPref('race'); const start=new Date(startStr+'T00:00:00'); const race=new Date(raceStr+'T00:00:00'); const totalWeeks=Math.max(1, Math.floor(dayDiff(start,race)/7));
-  const wk=weekIndex(startStr,d); const dow=d.getDay(); const weeksToRace=Math.max(0, Math.floor(dayDiff(d,race)/7));
+  const startStr=getPref('start'); const raceStr=getPref('race'); const start=new Date(startStr+'T00:00:00'); const race=new Date(raceStr+'T00:00:00');
+  const totalWeeks=Math.max(1, Math.floor((race-start)/(7*24*3600*1000)));
+  const wk=weekIndex(startStr,d); const dow=d.getDay();
+  const weeksToRace=Math.max(0, Math.floor((race - d)/(7*24*3600*1000)));
 
+  // Long run growth: 5 km baseline -> 19-20 km peak 2 weeks out; step-back each 4th week
   const startLong=5, peakLong=19, peakWeek=Math.max(1,totalWeeks-2);
   let plannedLong = startLong + (peakLong-startLong) * Math.min(wk,peakWeek)/peakWeek;
   if((wk+1)%4===0) plannedLong = Math.max(6, Math.round(plannedLong*0.85)); // step-back
   if(weeksToRace<=1) plannedLong = Math.round(plannedLong*0.5); // race week
   else if(weeksToRace===2) plannedLong = peakLong; // peak 2w out
 
+  // Tue & Thu scale gently from 3–7 and 4–9 km
   let tue = 3 + Math.floor(wk/3)*0.5; if(tue>7) tue=7;
-  let thu = 3.5 + Math.floor(wk/4)*0.5; if(thu>9) thu=9;
-  let sun = (wk>8)?4:0;
+  let thu = 4 + Math.floor(wk/3)*0.5; if(thu>9) thu=9;
 
   let type='Rest', km=0;
   if(dow===2){type='Easy run'; km=tue;}
-  if(dow===4){type='Easy/Tempo'; km=thu;}
+  if(dow===4){type='Steady/Tempo'; km=thu;}
   if(dow===6){type='Long run'; km=plannedLong;}
-  if(dow===0){type='Recovery (optional)'; km=sun;}
   return {type,km};
 }
 const runPlanLine=document.getElementById('runPlanLine');const kmEl=document.getElementById('runKm'),timeEl=document.getElementById('runTime');
@@ -449,6 +459,7 @@ function gramsFor(id){ const el=[...document.querySelectorAll(`[data-meal="${id}
 function checked(id){ const el=[...document.querySelectorAll(`[data-meal="${id}"][data-type="done"]`)][0]; return !!el?.checked; }
 function clamp01(x){return Math.max(0,Math.min(1,x));}
 function updateTotals(){
+  // Sum only checked rows
   let kcal=0, P=0, C=0, F=0;
   for(const id of Object.keys(BASE_MACROS)){
     if(checked(id)){
@@ -458,23 +469,24 @@ function updateTotals(){
   }
   kcal=Math.round(kcal); P=Math.round(P); C=Math.round(C); F=Math.round(F);
   calTotalEl.textContent=kcal+" kcal"; pTotalEl.textContent="P: "+P+" g"; cTotalEl.textContent="C: "+C+" g"; fTotalEl.textContent="F: "+F+" g";
-  const kt=getPref('macro_K',2500), pt=getPref('macro_P',200), ct=getPref('macro_C',250), ft=getPref('macro_F',80);
-  kBar.style.width=(clamp01(kcal/kt)*100).toFixed(0)+'%'; kTarget.textContent=`/ ${kt} kcal`;
-  pBar.style.width=(clamp01(P/pt)*100).toFixed(0)+'%'; pTarget.textContent=`/ ${pt} g`;
-  cBar.style.width=(clamp01(C/ct)*100).toFixed(0)+'%'; cTarget.textContent=`/ ${ct} g`;
-  fBar.style.width=(clamp01(F/ft)*100).toFixed(0)+'%'; fTarget.textContent=`/ ${ft} g`;
+  // Progress bars (fixed)
+  const kt=getPref('macro_K',2200), pt=getPref('macro_P',200), ct=getPref('macro_C',250), ft=getPref('macro_F',80);
+  kBar.style.width=(clamp01(kcal/kt)*100)+'%'; kTarget.textContent=`/ ${kt} kcal`;
+  pBar.style.width=(clamp01(P/pt)*100)+'%'; pTarget.textContent=`/ ${pt} g`;
+  cBar.style.width=(clamp01(C/ct)*100)+'%'; cTarget.textContent=`/ ${ct} g`;
+  fBar.style.width=(clamp01(F/ft)*100)+'%'; fTarget.textContent=`/ ${ft} g`;
 }
 mealInputs.forEach(el=>{ el.addEventListener('input',updateTotals); el.addEventListener('change',updateTotals); });
 
-// Plan table render (week by week)
+// Plan table render (week by week, Tue/Thu/Sat runs)
 function rebuildPlan(){
   const cont=document.getElementById('planTable'); cont.innerHTML='';
   const start=new Date(getPref('start')+'T00:00:00'); const race=new Date(getPref('race')+'T00:00:00');
   let d=new Date(start);
   while(d<=race){
     const days=[...Array(7)].map((_,i)=>{const t=new Date(d); t.setDate(d.getDate()+i); return t;});
-    const hdr=`<tr style="background:#101318"><th style="padding:6px 8px;border:1px solid var(--line)">Mon</th><th style="padding:6px 8px;border:1px solid var(--line)">Tue</th><th style="padding:6px 8px;border:1px 1px 1px 1px solid var(--line)">Wed</th><th style="padding:6px 8px;border:1px solid var(--line)">Thu</th><th style="padding:6px 8px;border:1px solid var(--line)">Fri</th><th style="padding:6px 8px;border:1px solid var(--line)">Sat</th><th style="padding:6px 8px;border:1px solid var(--line)">Sun</th></tr>`;
-    const tds = days.map(dd=>{ const tgt=runTargetFor(dd); const label = tgt.km>0 ? (tgt.km.toFixed(1)+'k') : '—'; return `<td style="padding:6px 8px;border:1px solid var(--line)">${label}<br><span style='font-size:11px;color:#9aa3b2'>${tgt.type.split(' ')[0]}</span></td>`; }).join('');
+    const hdr=`<tr style="background:#101318"><th style="padding:6px 8px;border:1px solid var(--line)">Mon</th><th style="padding:6px 8px;border:1px solid var(--line)">Tue</th><th style="padding:6px 8px;border:1px solid var(--line)">Wed</th><th style="padding:6px 8px;border:1px solid var(--line)">Thu</th><th style="padding:6px 8px;border:1px solid var(--line)">Fri</th><th style="padding:6px 8px;border:1px solid var(--line)">Sat</th><th style="padding:6px 8px;border:1px solid var(--line)">Sun</th></tr>`;
+    const tds = days.map(dd=>{ const tgt=runTargetFor(dd); const lbl = dd.getDay()==2||dd.getDay()==4||dd.getDay()==6 ? (tgt.km>0 ? (tgt.km.toFixed(1)+'k') : '—') : '—'; const subt = (dd.getDay()==2||dd.getDay()==4||dd.getDay()==6) ? tgt.type.split(' ')[0] : ''; return `<td style="padding:6px 8px;border:1px solid var(--line)">${lbl}<br><span style='font-size:11px;color:#9aa3b2'>${subt}</span></td>`; }).join('');
     cont.innerHTML += `<table style="width:100%;border-collapse:collapse;margin:10px 0">${hdr}<tr>${tds}</tr></table>`;
     d.setDate(d.getDate()+7);
   }
