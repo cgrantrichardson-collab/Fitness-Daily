@@ -1,3 +1,4 @@
+
 # Fitness Daily (PWA)
 A tiny offline-capable web app that shows your **daily** training plan and **nutrition checklist**.
 
