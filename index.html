@@ -2,10 +2,572 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Fitness Daily</title>
+
+  <!-- PWA / icons already in your repo -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="favicon.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <meta name="theme-color" content="#000000">
+
+  <style>
+    :root{
+      --bg:#0b0d10; --panel:#12151b; --ink:#e6e6e6; --muted:#9aa3b2;
+      --line:#22272e; --accent:#ff2424; --accent-2:#ff4d4d;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+      font-family:-apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    header{position:sticky;top:0;z-index:5;background:var(--panel);
+      border-bottom:1px solid var(--line);padding:12px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    h1{margin:0;font-size:18px;letter-spacing:.5px}
+    main{max-width:980px;margin:0 auto;padding:16px}
+    .row{display:flex;flex-wrap:wrap;gap:12px}
+    .card{flex:1 1 300px;background:#151922;border:1px solid var(--line);
+      border-radius:10px;padding:14px}
+    .card h2{margin:0 0 10px 0;font-size:16px;letter-spacing:.3px}
+    .muted{color:var(--muted);font-size:13px}
+    .pill{display:inline-block;border:1px solid var(--line);border-radius:999px;
+      padding:6px 10px;font-size:12px}
+    .btn{background:var(--accent);border:none;border-radius:8px;color:#fff;
+      padding:10px 12px;font-weight:600;cursor:pointer;white-space:nowrap}
+    .btn.alt{background:#2a2f3a;border:1px solid var(--line);color:#eaeaea}
+    .btn:active{transform:translateY(1px)}
+    .link{color:var(--accent-2);text-decoration:none}
+    label{display:block;margin:10px 0 4px 0;font-size:13px;color:var(--muted)}
+    input[type="text"],input[type="number"]{
+      width:100%;background:#0f1116;border:1px solid var(--line);color:var(--ink);
+      border-radius:8px;padding:10px 12px;font-size:15px}
+    .setrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+    .lift{border-top:1px dashed var(--line);padding-top:10px;margin-top:8px}
+    .accent{color:var(--accent-2)}
+    .quote{font-size:14px;line-height:1.45}
+    .quote b{color:var(--accent)}
+    canvas{width:100%;height:160px;background:#0f1116;border:1px solid var(--line);
+      border-radius:8px}
+
+    /* Tabs */
+    .tabs{display:flex;gap:8px;margin:0 0 12px 0}
+    .tab{background:#0f1116;border:1px solid var(--line);color:#e6e6e6; padding:8px 12px;border-radius:8px;cursor:pointer}
+    .tab.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+
+    /* Meals */
+    .meal{border-top:1px dashed var(--line);padding-top:10px;margin-top:10px}
+    .mealhead{display:flex;align-items:center;gap:8px}
+    .mealgrid{display:grid;grid-template-columns:auto 1fr 110px;gap:8px;align-items:center;margin-top:8px}
+    .mealgrid input[type="number"]{text-align:right}
+    .subtle{font-size:12px;color:var(--muted)}
+    .check{min-width:22px;min-height:22px}
+
+    /* Splash (matches your icon; uses contain to avoid cropping) */
+    #appSplash{
+      position:fixed;inset:0;background:#000 url('splash-portrait.png') center center/contain no-repeat;
+      z-index:9999;opacity:1;transition:opacity .35s
+    }
+    #appSplash.hide{opacity:0;pointer-events:none}
+
+    /* Compact on small screens */
+    @media (max-width:420px){
+      .setrow{grid-template-columns:1fr 1fr}
+      .setrow input:nth-child(3){grid-column:1 / span 2}
+      .mealgrid{grid-template-columns:auto 1fr 100px}
+    }
+  </style>
 </head>
 <body>
-  <h1>Fitness Daily App</h1>
-  <p>This is the corrected app placeholder. Replace with full app code.</p>
+  <div id="appSplash"></div>
+
+  <header>
+    <h1>FITNESS DAILY</h1>
+    <div style="display:flex;gap:6px;align-items:center;margin-left:auto">
+      <button class="btn" id="prevDay" title="Previous day">◀</button>
+      <div class="pill" id="dateLabel"></div>
+      <button class="btn" id="nextDay" title="Next day">▶</button>
+      <button class="btn alt" id="dailyRemindBtn" title="Create a daily calendar reminder">Remind me daily</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" id="tabTraining">Training</button>
+      <button class="tab" id="tabNutrition">Nutrition</button>
+    </div>
+
+    <!-- TRAINING -->
+    <div id="viewTraining">
+      <div class="row">
+        <!-- Quote -->
+        <section class="card" style="flex:1 1 100%">
+          <h2>Daily Motivation</h2>
+          <p class="quote" id="quoteText">Loading…</p>
+          <p class="muted">Tap the date arrows to see the next day’s quote.</p>
+        </section>
+
+        <!-- Workout logger -->
+        <section class="card">
+          <h2>Upper/Full Weight Training</h2>
+          <div class="muted">Log what you actually did today.</div>
+
+          <div id="liftsWrap">
+            <div class="lift">
+              <div><b>Lat Pulldown</b> — 4×8</div>
+              <div class="setrow">
+                <input type="number" min="0" placeholder="Weight (kg/lb)" data-lift="latpulldown" data-field="w1">
+                <input type="number" min="0" placeholder="Reps" data-lift="latpulldown" data-field="r1">
+                <input type="text"   placeholder="Notes" data-lift="latpulldown" data-field="n1">
+              </div>
+              <div class="setrow">
+                <input type="number" min="0" placeholder="Weight" data-lift="latpulldown" data-field="w2">
+                <input type="number" min="0" placeholder="Reps" data-lift="latpulldown" data-field="r2">
+                <input type="text"   placeholder="Notes" data-lift="latpulldown" data-field="n2">
+              </div>
+              <div class="setrow">
+                <input type="number" min="0" placeholder="Weight" data-lift="latpulldown" data-field="w3">
+                <input type="number" min="0" placeholder="Reps" data-lift="latpulldown" data-field="r3">
+                <input type="text"   placeholder="Notes" data-lift="latpulldown" data-field="n3">
+              </div>
+              <div class="setrow">
+                <input type="number" min="0" placeholder="Weight" data-lift="latpulldown" data-field="w4">
+                <input type="number" min="0" placeholder="Reps" data-lift="latpulldown" data-field="r4">
+                <input type="text"   placeholder="Notes" data-lift="latpulldown" data-field="n4">
+              </div>
+            </div>
+
+            <div class="lift">
+              <div><b>Barbell/DB Row</b> — 4×8</div>
+              <div class="setrow">
+                <input type="number" placeholder="Weight" data-lift="row" data-field="w1">
+                <input type="number" placeholder="Reps"   data-lift="row" data-field="r1">
+                <input type="text"   placeholder="Notes"  data-lift="row" data-field="n1">
+              </div>
+              <div class="setrow">
+                <input type="number" placeholder="Weight" data-lift="row" data-field="w2">
+                <input type="number" placeholder="Reps"   data-lift="row" data-field="r2">
+                <input type="text"   placeholder="Notes"  data-lift="row" data-field="n2">
+              </div>
+              <div class="setrow">
+                <input type="number" placeholder="Weight" data-lift="row" data-field="w3">
+                <input type="number" placeholder="Reps"   data-lift="row" data-field="r3">
+                <input type="text"   placeholder="Notes"  data-lift="row" data-field="n3">
+              </div>
+              <div class="setrow">
+                <input type="number" placeholder="Weight" data-lift="row" data-field="w4">
+                <input type="number" placeholder="Reps"   data-lift="row" data-field="r4">
+                <input type="text"   placeholder="Notes"  data-lift="row" data-field="n4">
+              </div>
+            </div>
+
+            <div class="lift">
+              <div><b>Face Pulls</b> — 3×12</div>
+              <div class="setrow">
+                <input type="number" placeholder="Weight" data-lift="facepulls" data-field="w1">
+                <input type="number" placeholder="Reps"   data-lift="facepulls" data-field="r1">
+                <input type="text"   placeholder="Notes"  data-lift="facepulls" data-field="n1">
+              </div>
+              <div class="setrow">
+                <input type="number" placeholder="Weight" data-lift="facepulls" data-field="w2">
+                <input type="number" placeholder="Reps"   data-lift="facepulls" data-field="r2">
+                <input type="text"   placeholder="Notes"  data-lift="facepulls" data-field="n2">
+              </div>
+              <div class="setrow">
+                <input type="number" placeholder="Weight" data-lift="facepulls" data-field="w3">
+                <input type="number" placeholder="Reps"   data-lift="facepulls" data-field="r3">
+                <input type="text"   placeholder="Notes"  data-lift="facepulls" data-field="n3">
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn" id="saveLifts">Save</button>
+            <button class="btn alt" id="clearLifts">Clear day</button>
+          </div>
+        </section>
+
+        <!-- Run logger -->
+        <section class="card">
+          <h2>Run Log</h2>
+          <label>Distance (km)</label>
+          <input type="number" min="0" step="0.01" id="runKm" placeholder="e.g., 5.20">
+          <label>Time (hh:mm:ss)</label>
+          <input type="text" id="runTime" placeholder="e.g., 00:27:45">
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn" id="saveRun">Save</button>
+            <button class="btn alt" id="clearRun">Clear day</button>
+          </div>
+        </section>
+
+        <!-- Progress -->
+        <section class="card" style="flex:1 1 100%">
+          <h2>Progress (this week)</h2>
+          <div class="row">
+            <div class="card" style="flex:1 1 360px">
+              <h2>Training Volume</h2>
+              <canvas id="volChart" width="360" height="160"></canvas>
+              <p class="muted">Sum of (weight × reps) per day.</p>
+            </div>
+            <div class="card" style="flex:1 1 360px">
+              <h2>Run Distance</h2>
+              <canvas id="runChart" width="360" height="160"></canvas>
+              <p class="muted">Total kilometers per day.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- NUTRITION -->
+    <div id="viewNutrition" style="display:none">
+      <div class="row">
+        <section class="card" style="flex:1 1 100%">
+          <h2>Master Nutrition Template (editable grams)</h2>
+          <p class="muted">This template uses your foods (salmon, venison, bear) and avoids walnuts & sweet potatoes. Check off items as you eat them. Grams are editable and saved per day.</p>
+
+          <!-- Meals (checkbox + item + grams) -->
+          <div id="mealsWrap">
+            <!-- Breakfast -->
+            <div class="meal">
+              <div class="mealhead"><b>Breakfast</b> <span class="subtle">(~ high-protein)</span></div>
+              <div class="mealgrid">
+                <input type="checkbox" class="check" data-meal="b1" data-type="done">
+                <div>Greek yogurt (2%+)</div>
+                <input type="number" min="0" value="250" data-meal="b1" data-type="g">
+
+                <input type="checkbox" class="check" data-meal="b2" data-type="done">
+                <div>Mixed berries</div>
+                <input type="number" min="0" value="150" data-meal="b2" data-type="g">
+
+                <input type="checkbox" class="check" data-meal="b3" data-type="done">
+                <div>Rolled oats (dry)</div>
+                <input type="number" min="0" value="60" data-meal="b3" data-type="g">
+              </div>
+            </div>
+
+            <!-- Lunch -->
+            <div class="meal">
+              <div class="mealhead"><b>Lunch</b> <span class="subtle">(~ performance carbs)</span></div>
+              <div class="mealgrid">
+                <input type="checkbox" class="check" data-meal="l1" data-type="done">
+                <div>Venison chili (lean venison)</div>
+                <input type="number" min="0" value="200" data-meal="l1" data-type="g">
+
+                <input type="checkbox" class="check" data-meal="l2" data-type="done">
+                <div>Cooked white rice / jasmine</div>
+                <input type="number" min="0" value="180" data-meal="l2" data-type="g">
+
+                <input type="checkbox" class="check" data-meal="l3" data-type="done">
+                <div>Veg mix (peppers/onion/tomato)</div>
+                <input type="number" min="0" value="150" data-meal="l3" data-type="g">
+              </div>
+            </div>
+
+            <!-- Dinner -->
+            <div class="meal">
+              <div class="mealhead"><b>Dinner</b> <span class="subtle">(~ omega-3s & greens)</span></div>
+              <div class="mealgrid">
+                <input type="checkbox" class="check" data-meal="d1" data-type="done">
+                <div>Salmon (wild)</div>
+                <input type="number" min="0" value="200" data-meal="d1" data-type="g">
+
+                <input type="checkbox" class="check" data-meal="d2" data-type="done">
+                <div>Quinoa (cooked)</div>
+                <input type="number" min="0" value="180" data-meal="d2" data-type="g">
+
+                <input type="checkbox" class="check" data-meal="d3" data-type="done">
+                <div>Broccoli (steamed/roasted)</div>
+                <input type="number" min="0" value="200" data-meal="d3" data-type="g">
+              </div>
+            </div>
+
+            <!-- Snacks -->
+            <div class="meal">
+              <div class="mealhead"><b>Snacks</b> <span class="subtle">(choose 1–2)</span></div>
+              <div class="mealgrid">
+                <input type="checkbox" class="check" data-meal="s1" data-type="done">
+                <div>Cottage cheese</div>
+                <input type="number" min="0" value="200" data-meal="s1" data-type="g">
+
+                <input type="checkbox" class="check" data-meal="s2" data-type="done">
+                <div>Almonds (no walnuts)</div>
+                <input type="number" min="0" value="28" data-meal="s2" data-type="g">
+
+                <input type="checkbox" class="check" data-meal="s3" data-type="done">
+                <div>Bear roast (lean, sliced)</div>
+                <input type="number" min="0" value="150" data-meal="s3" data-type="g">
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn" id="saveMeals">Save meals</button>
+            <button class="btn alt" id="clearMeals">Clear meals for day</button>
+          </div>
+        </section>
+
+        <!-- Substitutions -->
+        <section class="card" style="flex:1 1 100%">
+          <h2>Food Substitutions (like-for-like)</h2>
+          <div class="row">
+            <div class="card">
+              <h2>Proteins</h2>
+              <ul class="muted">
+                <li>Venison ↔ elk ↔ moose ↔ bison (lean)</li>
+                <li>Bear (lean cuts) ↔ beef round/sirloin (trimmed)</li>
+                <li>Salmon ↔ trout ↔ steelhead ↔ cod/halibut</li>
+                <li>Chicken/turkey breast ↔ canned tuna/salmon</li>
+                <li>Greek yogurt ↔ skyr ↔ low-fat cottage cheese</li>
+                <li>Eggs ↔ egg whites (for lower fat)</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h2>Carbs</h2>
+              <ul class="muted">
+                <li>White rice ↔ jasmine ↔ basmati ↔ sushi rice</li>
+                <li>Quinoa ↔ farro ↔ barley ↔ couscous</li>
+                <li>Oats ↔ cream of rice ↔ buckwheat</li>
+                <li><b>No sweet potatoes</b> → use white potatoes or rice</li>
+                <li>Beans/lentils ↔ chickpeas (watch fiber near runs)</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h2>Fats & Extras</h2>
+              <ul class="muted">
+                <li>Olive oil ↔ avocado oil ↔ spray oil (for cuts)</li>
+                <li>Almonds ↔ pistachios ↔ pecans (avoid walnuts)</li>
+                <li>Avocado ↔ olives</li>
+                <li>Salsas, mustard, hot sauce (low-cal flavor)</li>
+                <li>Herbs/spices: garlic, dill, thyme, rosemary</li>
+              </ul>
+            </div>
+          </div>
+          <p class="muted">Tip: on long run days, push more carbs at lunch/dinner (rice/quinoa) and keep fats moderate for gut comfort.</p>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // --- Splash fade ---
+    function hideSplashSoon(){
+      const el=document.getElementById('appSplash');
+      if(!el) return;
+      setTimeout(()=>{ el.classList.add('hide'); setTimeout(()=>{ el.remove && el.remove(); }, 400); }, 800);
+    }
+    window.addEventListener('load', hideSplashSoon);
+
+    // --- Tabs ---
+    const tabTraining = document.getElementById('tabTraining');
+    const tabNutrition = document.getElementById('tabNutrition');
+    const viewTraining = document.getElementById('viewTraining');
+    const viewNutrition = document.getElementById('viewNutrition');
+    function showTab(which){
+      if(which==='train'){
+        tabTraining.classList.add('active'); tabNutrition.classList.remove('active');
+        viewTraining.style.display='block'; viewNutrition.style.display='none';
+      } else {
+        tabNutrition.classList.add('active'); tabTraining.classList.remove('active');
+        viewNutrition.style.display='block'; viewTraining.style.display='none';
+      }
+    }
+    tabTraining.addEventListener('click', ()=>showTab('train'));
+    tabNutrition.addEventListener('click', ()=>showTab('nutri'));
+
+    // --- Date state ---
+    const dayMS = 86400000;
+    let current = new Date();
+    const dateLabel = document.getElementById('dateLabel');
+    function ymd(d){return d.toISOString().slice(0,10)}
+    function fmt(d){
+      return d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+    }
+    function setDate(d){
+      current = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      dateLabel.textContent = fmt(current);
+      loadLifts(); loadRun(); drawCharts(); showQuoteFor(current); loadMeals();
+    }
+    document.getElementById('prevDay').onclick=()=>setDate(new Date(current.getTime()-dayMS));
+    document.getElementById('nextDay').onclick=()=>setDate(new Date(current.getTime()+dayMS));
+    setDate(current);
+
+    // --- Quotes ---
+    const QUOTES = [
+      {t:"Tiny changes, remarkable results. Make it obvious. Make it easy.", a:"Atomic Habits"},
+      {t:"Discipline equals freedom.", a:"Jocko Willink"},
+      {t:"Stay hard.", a:"David Goggins"},
+      {t:"I can accept failure; I can’t accept not trying.", a:"Michael Jordan"},
+      {t:"Great things come from hard work and perseverance.", a:"Kobe Bryant"},
+      {t:"You don’t have to be perfect, just be better than yesterday.", a:"Tom Brady"},
+      {t:"You miss 100% of the shots you don’t take.", a:"Wayne Gretzky"},
+      {t:"Success is not final; failure is not fatal: it is the courage to continue that counts.", a:"Winston Churchill"},
+      {t:"Let your yes be yes and your no be no.", a:"Jesus (Matthew 5:37)"},
+      {t:"Waste no more time arguing what a good man should be. Be one.", a:"Marcus Aurelius"},
+      {t:"First say to yourself what you would be; then do what you have to do.", a:"Epictetus"}
+    ];
+    function showQuoteFor(d){
+      const seed = parseInt(ymd(d).replaceAll('-',''),10) % QUOTES.length;
+      const q = QUOTES[seed];
+      document.getElementById('quoteText').innerHTML =
+        `<b>“${q.t}”</b><br><span class="muted">— ${q.a}</span>`;
+    }
+
+    // --- Storage ---
+    const KEY = "fdaily";
+    const db = JSON.parse(localStorage.getItem(KEY)||"{}");
+    function save(){ localStorage.setItem(KEY, JSON.stringify(db)); }
+
+    // --- Lifts ---
+    const liftInputs = [...document.querySelectorAll('[data-lift]')];
+    function liftKey(){ return "lift:"+ymd(current); }
+    function loadLifts(){
+      const k = liftKey();
+      const obj = db[k] || {};
+      liftInputs.forEach(i=>{
+        const id = i.dataset.lift + ":" + i.dataset.field;
+        i.value = obj[id] ?? "";
+      });
+    }
+    function persistLifts(){
+      const k = liftKey();
+      const obj = {};
+      liftInputs.forEach(i=>{
+        const id = i.dataset.lift + ":" + i.dataset.field;
+        if(i.value.trim()!=="") obj[id]=i.value;
+      });
+      db[k]=obj; save(); drawCharts();
+    }
+    document.getElementById('saveLifts').onclick=persistLifts;
+    document.getElementById('clearLifts').onclick=()=>{
+      delete db[liftKey()]; save(); loadLifts(); drawCharts();
+    };
+
+    // --- Run ---
+    const kmEl = document.getElementById('runKm');
+    const timeEl = document.getElementById('runTime');
+    function runKey(){ return "run:"+ymd(current); }
+    function loadRun(){
+      const r = db[runKey()]||{};
+      kmEl.value = r.km ?? "";
+      timeEl.value = r.t ?? "";
+    }
+    function persistRun(){
+      db[runKey()] = { km: kmEl.value, t: timeEl.value };
+      save(); drawCharts();
+    }
+    document.getElementById('saveRun').onclick=persistRun;
+    document.getElementById('clearRun').onclick=()=>{
+      delete db[runKey()]; save(); loadRun(); drawCharts();
+    };
+
+    // --- Charts ---
+    function parseNum(x){ const n=parseFloat(x); return isFinite(n)?n:0; }
+    function volumeForDay(dayStr){
+      const obj = db["lift:"+dayStr] || {};
+      let vol=0;
+      Object.entries(obj).forEach(([k,v])=>{
+        if(k.includes(":w")){
+          const reps = parseNum(obj[k.replace(":w",":r")]||0);
+          vol += parseNum(v) * reps;
+        }
+      });
+      return vol;
+    }
+    function runKmForDay(dayStr){
+      const r = db["run:"+dayStr] || {};
+      return parseNum(r.km||0);
+    }
+    function weekDays(base){
+      const d = new Date(base);
+      const day = (d.getDay()+6)%7; // 0=Mon
+      d.setDate(d.getDate()-day);
+      return [...Array(7)].map((_,i)=>{ const t=new Date(d); t.setDate(d.getDate()+i); return t; });
+    }
+    function drawBar(ctx, data, max){
+      const W = ctx.canvas.width, H = ctx.canvas.height;
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle = "#0f1116"; ctx.fillRect(0,0,W,H);
+      const pad=24; const n=data.length;
+      const step = (W - pad*2)/n;
+      const bw = Math.max(6, step*0.6);
+      ctx.strokeStyle="#22272e"; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(pad, H-pad); ctx.lineTo(W-pad, H-pad); ctx.stroke();
+      data.forEach((v,i)=>{
+        const x = pad + i*step + (step-bw)/2;
+        const h = max? Math.round((v/max)*(H-pad*2)) : 0;
+        ctx.fillStyle = "#ff2424";
+        ctx.fillRect(x, H-pad-h, bw, h);
+      });
+    }
+    function drawCharts(){
+      const days = weekDays(current).map(d=>d.toISOString().slice(0,10));
+      const vols = days.map(volumeForDay);
+      const kms  = days.map(runKmForDay);
+      const vMax = Math.max(10, ...vols);
+      const kMax = Math.max(1,  ...kms);
+      drawBar(document.getElementById('volChart').getContext('2d'), vols, vMax);
+      drawBar(document.getElementById('runChart').getContext('2d'), kms,  kMax);
+    }
+    drawCharts();
+
+    // --- Meals (checkbox + grams) ---
+    const mealInputs = [...document.querySelectorAll('[data-meal]')];
+    function mealKey(){ return "meals:"+ymd(current); }
+    function loadMeals(){
+      const obj = db[mealKey()] || {};
+      mealInputs.forEach(el=>{
+        const id = el.dataset.meal + ":" + el.dataset.type;
+        if(el.type==="checkbox"){ el.checked = !!obj[id]; }
+        else if(el.type==="number"){ el.value = obj[id] ?? el.value; }
+      });
+    }
+    function persistMeals(){
+      const obj = {};
+      mealInputs.forEach(el=>{
+        const id = el.dataset.meal + ":" + el.dataset.type;
+        if(el.type==="checkbox"){ if(el.checked) obj[id]=true; }
+        else if(el.type==="number"){ obj[id]=el.value; }
+      });
+      db[mealKey()] = obj; save();
+      alert("Meals saved for " + ymd(current));
+    }
+    function clearMeals(){
+      delete db[mealKey()]; save(); loadMeals();
+    }
+    document.getElementById('saveMeals').onclick=persistMeals;
+    document.getElementById('clearMeals').onclick=clearMeals;
+
+    // --- Daily ICS reminder ---
+    function downloadDailyICS(title = "GET AFTER IT — open Fitness Daily", hour = 7, minute = 0) {
+      const now = new Date();
+      const pad = n => String(n).padStart(2, "0");
+      const y = now.getFullYear(), m = pad(now.getMonth()+1), d = pad(now.getDate());
+      const hh = pad(hour), mm = pad(minute);
+      const dtstart = `${y}${m}${d}T${hh}${mm}00`; // floating local time
+      const uid = `fdaily-${Date.now()}@fitness`;
+      const ics = [
+        "BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//FitnessDaily//EN","CALSCALE:GREGORIAN","METHOD:PUBLISH",
+        "BEGIN:VEVENT",`UID:${uid}`,`DTSTART:${dtstart}`,"RRULE:FREQ=DAILY",`SUMMARY:${title}`,"END:VEVENT","END:VCALENDAR"
+      ].join("\r\n");
+      const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href=url; a.download="FitnessDaily_Daily_Reminder.ics"; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),800);
+    }
+    document.getElementById("dailyRemindBtn").addEventListener("click", ()=>{
+      const t = prompt("Daily reminder time (24h, e.g. 06:30). Leave blank for 07:00:", "");
+      let h=7,m=0;
+      if (t && /^\d{1,2}:\d{2}$/.test(t.trim())) {
+        const [hh,mm]=t.split(":").map(x=>parseInt(x,10));
+        if(hh>=0&&hh<24&&mm>=0&&mm<60){h=hh;m=mm;}
+      }
+      downloadDailyICS("GET AFTER IT — open Fitness Daily", h, m);
+      alert("ICS downloaded. Tap it → Add to create the daily reminder.");
+    });
+
+    // --- Service worker (offline) ---
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
+    }
+  </script>
 </body>
 </html>
